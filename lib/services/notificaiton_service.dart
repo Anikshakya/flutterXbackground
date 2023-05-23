@@ -46,10 +46,7 @@ class NotificationService {
         id,
         title,
         body,
-        tz.TZDateTime.from(
-          scheduledNotificationDateTime,
-          tz.local,
-        ),
+        tz.TZDateTime.from(scheduledNotificationDateTime,tz.local,),
         await notificationDetails(),
         androidAllowWhileIdle: true,
         uiLocalNotificationDateInterpretation:

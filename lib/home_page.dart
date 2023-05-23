@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutterxbackground/helper/read_write.dart';
+import 'package:flutterxbackground/services/background_service.dart';
 
 import 'services/notificaiton_service.dart';
 
@@ -13,7 +14,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   DateTime scheduleTime = DateTime.now();
-  String text = "Stop Service";
+  String text = "Start Service";
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -26,18 +27,6 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                ElevatedButton(
-                  child: const Text("Foreground Mode"),
-                  onPressed: () {
-                    FlutterBackgroundService().invoke("setAsForeground");
-                  },
-                ),
-                ElevatedButton(
-                  child: const Text("Background Mode"),
-                  onPressed: () {
-                    FlutterBackgroundService().invoke("setAsBackground");
-                  },
-                ),
                 //Stop/Start Service
                 ElevatedButton(
                   child: Text(text),
@@ -45,17 +34,16 @@ class _HomePageState extends State<HomePage> {
                     final service = FlutterBackgroundService();
                     var isRunning = await service.isRunning();
                     if (isRunning) {
-                      service.invoke("stopService");
+                      BackgroundService.stopBgService();
+                      setState(() {
+                        text = 'Start Service';
+                      });
                     } else {
-                      service.startService();
+                      BackgroundService.startBgService();
+                      setState(() {
+                        text = 'Stop Service';
+                      });
                     }
-                  
-                    if (!isRunning) {
-                      text = 'Stop Service';
-                    } else {
-                      text = 'Start Service';
-                    }
-                    setState(() {});
                   },
                 ),
                 //Pick date
@@ -89,7 +77,6 @@ class _HomePageState extends State<HomePage> {
                             );
                             // Do something with the selected date and time
                             scheduleTime = selectedDateTime;
-                            write("scheduledTime", selectedDateTime.toString());
                           }
                         });
                       }
@@ -102,13 +89,29 @@ class _HomePageState extends State<HomePage> {
                 //Schedule Button
                 ElevatedButton(
                   child: const Text('Schedule notifications'),
-                  onPressed: () {
+                  onPressed: () async{
+                    //To Start the service if it hasnt already, This will automatically trigger the notification beacuse the trigger function is defiled insde bg service
+                    final service = FlutterBackgroundService();
+                    var isRunning = await service.isRunning();
+                    if (!isRunning) {
+                      BackgroundService.startBgService();
+                      setState(() {
+                        text = 'Stop Service';
+                      });
+                    }
+                    //Print shedule time
                     debugPrint('Notification Scheduled for $scheduleTime');
+
+                    //Store notification date to call on background
+                    write("scheduledTime", scheduleTime.toString());
+
+                    //For Foreground
                     NotificationService().scheduleNotification(
                       title: 'Scheduled Notification',
                       body: 'Hey you have an event on $scheduleTime',
                       scheduledNotificationDateTime: scheduleTime
                     );
+
                     //Snack bar
                     final snackBar = SnackBar(
                       content: Text('Notification Scheduled at $scheduleTime'),
