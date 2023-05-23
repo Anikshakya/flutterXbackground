@@ -6,11 +6,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_background_service_android/flutter_background_service_android.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutterxbackground/helper/read_write.dart';
+import 'package:flutterxbackground/home_page.dart';
+import 'package:flutterxbackground/services/notificaiton_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:timezone/data/latest.dart' as tz;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeService();
+  NotificationService().initNotification();
+  tz.initializeTimeZones();
   runApp(const MyApp());
 }
 
@@ -30,9 +36,13 @@ Future<void> initializeService() async {
 
   if (Platform.isIOS) {
     await flutterLocalNotificationsPlugin.initialize(
-      const InitializationSettings(
-        iOS: IOSInitializationSettings(),
-      ),
+      InitializationSettings(
+        android: const AndroidInitializationSettings('ic_launcher'), iOS: DarwinInitializationSettings(
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
+        onDidReceiveLocalNotification:
+            (int id, String? title, String? body, String? payload) async {}))
     );
   }
 
@@ -124,19 +134,26 @@ void onStart(ServiceInstance service) async {
         /// the notification id must be equals with AndroidConfiguration when you call configure() method.
         flutterLocalNotificationsPlugin.show(
           888,
-          'COOL SERVICE',
-          'Awesome ${DateTime.now()}',
+          'Bg Service',
+          'Hamro Date Time ${DateTime.now()}',
           const NotificationDetails(
             android: AndroidNotificationDetails(
               'my_foreground',
               'MY FOREGROUND SERVICE',
-              icon: 'ic_bg_service_small',
+              icon: 'ic_launcher',
               ongoing: true,
             ),
           ),
         );
 
         //Es ma k garne lekh nu parcha
+        if(read("scheduledTime") != null || read("scheduledTime") != ""){
+          NotificationService().scheduleNotification(
+            title: 'Scheduled Notification',
+            body: '${read("scheduledTime")}',
+            scheduledNotificationDateTime: DateTime.parse(read("scheduledTime")),
+          );
+        }
 
 
         // if you don't using custom notification, uncomment this
@@ -181,119 +198,15 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String text = "Stop Service";
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Service App'),
-        ),
-        body: Column(
-          children: [
-            StreamBuilder<Map<String, dynamic>?>(
-              stream: FlutterBackgroundService().on('update'),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
-                }
-
-                final data = snapshot.data!;
-                String? device = data["device"];
-                DateTime? date = DateTime.tryParse(data["current_date"]);
-                return Column(
-                  children: [
-                    Text(device ?? 'Unknown'),
-                    Text(date.toString()),
-                  ],
-                );
-              },
-            ),
-            ElevatedButton(
-              child: const Text("Foreground Mode"),
-              onPressed: () {
-                FlutterBackgroundService().invoke("setAsForeground");
-              },
-            ),
-            ElevatedButton(
-              child: const Text("Background Mode"),
-              onPressed: () {
-                FlutterBackgroundService().invoke("setAsBackground");
-              },
-            ),
-            ElevatedButton(
-              child: Text(text),
-              onPressed: () async {
-                final service = FlutterBackgroundService();
-                var isRunning = await service.isRunning();
-                if (isRunning) {
-                  service.invoke("stopService");
-                } else {
-                  service.startService();
-                }
-
-                if (!isRunning) {
-                  text = 'Stop Service';
-                } else {
-                  text = 'Start Service';
-                }
-                setState(() {});
-              },
-            ),
-            const Expanded(
-              child: LogView(),
-            ),
-          ],
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {},
-          child: const Icon(Icons.play_arrow),
-        ),
+      title: 'Flutter Notifications',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
       ),
-    );
-  }
-}
-
-class LogView extends StatefulWidget {
-  const LogView({Key? key}) : super(key: key);
-
-  @override
-  State<LogView> createState() => _LogViewState();
-}
-
-class _LogViewState extends State<LogView> {
-  late final Timer timer;
-  List<String> logs = [];
-
-  @override
-  void initState() {
-    super.initState();
-    timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
-      final SharedPreferences sp = await SharedPreferences.getInstance();
-      await sp.reload();
-      logs = sp.getStringList('log') ?? [];
-      if (mounted) {
-        setState(() {});
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    timer.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.builder(
-      itemCount: logs.length,
-      itemBuilder: (context, index) {
-        final log = logs.elementAt(index);
-        return Text(log);
-      },
+      home: const HomePage(),
     );
   }
 }
