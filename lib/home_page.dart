@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutterxbackground/helper/constants.dart';
 import 'package:flutterxbackground/helper/read_write.dart';
-import 'package:flutterxbackground/services/background_service.dart';
 
 import 'services/notificaiton_service.dart';
 
@@ -15,7 +14,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   DateTime scheduleTime = DateTime.now();
   String text = "Start Service";
-  FlutterBackgroundService? service;
   bool isRunning = false;
 
   @override
@@ -26,8 +24,7 @@ class _HomePageState extends State<HomePage> {
 
   checkBgServiceStatus() async{
     write("isRunning", false);
-    service = FlutterBackgroundService();
-    isRunning = await service!.isRunning();
+    isRunning = await service.isRunning();
     write("isRunning", isRunning);
     setState(() {});
   }
@@ -44,22 +41,17 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
+                ElevatedButton(
+                  child: const Text("Start Service"),
+                  onPressed: () async {
+                    service.startService();
+                  },
+                ),
                 //Stop/Start Service
                 ElevatedButton(
-                  child: Text(text),
+                  child: const Text("Stop Service"),
                   onPressed: () async {
-                    if (read("isRunning")) {
-                      BackgroundService.stopBgService();
-                      write("isRunning", false);
-                      setState(() {
-                        text = 'Start Service';
-                      });
-                    } else {
-                      BackgroundService.startBgService();
-                      setState(() {
-                        text = 'Stop Service';
-                      });
-                    }
+                    service.invoke('stopService');
                   },
                 ),
                 //Pick date
@@ -108,10 +100,7 @@ class _HomePageState extends State<HomePage> {
                   onPressed: () async{
                     //To Start the service if it hasnt already, This will automatically trigger the notification beacuse the trigger function is defiled insde bg service
                     if (!read("isRunning")) {
-                      BackgroundService.startBgService();
-                      setState(() {
-                        text = 'Stop Service';
-                      });
+                      service.startService();
                     }
                     //Print shedule time
                     debugPrint('Notification Scheduled for $scheduleTime');
