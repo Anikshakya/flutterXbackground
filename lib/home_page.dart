@@ -15,6 +15,23 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   DateTime scheduleTime = DateTime.now();
   String text = "Start Service";
+  FlutterBackgroundService? service;
+  bool isRunning = false;
+
+  @override
+  void initState() {
+    checkBgServiceStatus();
+    super.initState();
+  }
+
+  checkBgServiceStatus() async{
+    write("isRunning", false);
+    service = FlutterBackgroundService();
+    isRunning = await service!.isRunning();
+    write("isRunning", isRunning);
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -31,10 +48,9 @@ class _HomePageState extends State<HomePage> {
                 ElevatedButton(
                   child: Text(text),
                   onPressed: () async {
-                    final service = FlutterBackgroundService();
-                    var isRunning = await service.isRunning();
-                    if (isRunning) {
+                    if (read("isRunning")) {
                       BackgroundService.stopBgService();
+                      write("isRunning", false);
                       setState(() {
                         text = 'Start Service';
                       });
@@ -91,9 +107,7 @@ class _HomePageState extends State<HomePage> {
                   child: const Text('Schedule notifications'),
                   onPressed: () async{
                     //To Start the service if it hasnt already, This will automatically trigger the notification beacuse the trigger function is defiled insde bg service
-                    final service = FlutterBackgroundService();
-                    var isRunning = await service.isRunning();
-                    if (!isRunning) {
+                    if (!read("isRunning")) {
                       BackgroundService.startBgService();
                       setState(() {
                         text = 'Stop Service';

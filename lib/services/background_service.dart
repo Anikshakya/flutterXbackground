@@ -54,9 +54,11 @@ class BackgroundService{
 
   static void setAsBgService(){
     final service = FlutterBackgroundService();
+    final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
     service.invoke("setAsBackground");
+    flutterLocalNotificationsPlugin.cancelAll();
   }
-  
+
   static void setAsFgService(){
     final service = FlutterBackgroundService();
     service.invoke("setAsForeground");
@@ -147,9 +149,6 @@ class BackgroundService{
     // For flutter prior to version 3.0.0
     // We have to register the plugin manually
 
-    SharedPreferences preferences = await SharedPreferences.getInstance();
-    await preferences.setString("hello", "world");
-
     /// To Show Your own notification
     final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
@@ -189,11 +188,14 @@ class BackgroundService{
 
         //   //Es ma k garne lekh nu parcha
           if(read("scheduledTime") != null && read("scheduledTime") != ""){
+            service.invoke("stopService");
             NotificationService().scheduleNotification(
               title: 'Scheduled Notification',
               body: '${read("scheduledTime")}',
               scheduledNotificationDateTime: DateTime.parse(read("scheduledTime")),
-            );
+            ).whenComplete(() {
+              write("scheduledTime", "");
+            });
           }
 
         //   // if you don't using custom notification, uncomment this
