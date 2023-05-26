@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutterxbackground/helper/constants.dart';
-import 'package:flutterxbackground/helper/read_write.dart';
 
 import 'services/notificaiton_service.dart';
+
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,7 +13,6 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   DateTime scheduleTime = DateTime.now();
-  String text = "Start Service";
   bool isRunning = false;
 
   @override
@@ -23,9 +22,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   checkBgServiceStatus() async{
-    write("isRunning", false);
     isRunning = await service.isRunning();
-    write("isRunning", isRunning);
     setState(() {});
   }
 
@@ -98,23 +95,19 @@ class _HomePageState extends State<HomePage> {
                 ElevatedButton(
                   child: const Text('Schedule notifications'),
                   onPressed: () async{
-                    //To Start the service if it hasnt already, This will automatically trigger the notification beacuse the trigger function is defiled insde bg service
-                    if (!read("isRunning")) {
-                      service.startService();
-                    }
-                    //Print shedule time
-                    debugPrint('Notification Scheduled for $scheduleTime');
+                    //Start Bg service
+                    service.startService();
 
-                    //Store notification date to call on background
-                    write("scheduledTime", scheduleTime.toString());
-
-                    //For Foreground
+                    //After Starting the Bg service schedule notification
                     NotificationService().scheduleNotification(
                       title: 'Scheduled Notification',
                       body: 'Hey you have an event on $scheduleTime',
                       scheduledNotificationDateTime: scheduleTime
                     );
 
+                    //Print shedule time
+                    debugPrint('Notification Scheduled for $scheduleTime');
+                    
                     //Snack bar
                     final snackBar = SnackBar(
                       content: Text('Notification Scheduled at $scheduleTime'),
